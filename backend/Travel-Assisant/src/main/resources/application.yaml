@@ -57,8 +57,6 @@ spring:
 
 logging:
   level:
-    yuxuan.travelassisant: debug
-    yuxuan.travelassisant.mapper: debug
     org.springframework.ai: debug    # ✅ 新增，看AI请求详情
     com.alibaba.cloud.ai: debug
     org.springframework.web.client.RestTemplate: debug

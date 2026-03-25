@@ -4,6 +4,7 @@ import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import yuxuan.travelassisant.entity.DTO.Result;
 import yuxuan.travelassisant.service.TravelAdvisorService;
 
 /**
@@ -53,11 +54,11 @@ public class TravelAdvisorController {
      * 示例：DELETE /travel/memory?conversationId=uuid-123
      */
     @DeleteMapping("/memory")
-    public String clearMemory(@RequestParam String conversationId) {
+    public Result clearMemory(@RequestParam String conversationId) {
         if (!StringUtils.hasText(conversationId)) {
-            return "会话ID不能为空";
+            return Result.fail("会话ID不能为空");
         }
         travelAdvisorService.clearMemory(conversationId);
-        return "会话记忆已清除";
+        return  Result.ok("会话清除");
     }
 }

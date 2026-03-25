@@ -16,23 +16,34 @@ const router = createRouter({
  * 全局前置守卫：登录拦截
  */
 router.beforeEach((to, from) => {
-     NProgress.start();
-  // 1. 设置页面标题 (从 meta 中读取)
+  NProgress.start();
+
+  // 1. 设置页面标题
   const title = to.meta.title ? `${to.meta.title} - 智能旅游助手` : '智能旅游助手';
   document.title = title as string;
 
-  // 2. 鉴权逻辑 (这里仅为示例，需配合 Pinia)
-  const isAuthenticated = !!localStorage.getItem('authorization'); // 实际开发建议从 store 获取
+  // 2. 鉴权逻辑
+  const isAuthenticated = !!localStorage.getItem('authorization');
 
-  // 如果访问的不是登录页，且没有 token，则强制跳转到登录
-  if (to.name !== 'Login' && !isAuthenticated) {
-    return { name: 'Login' };
-  } else if (to.name === 'Login' && isAuthenticated) {
-    // 如果已登录还想去登录页，直接拉回首页/助手页
-    return { name: 'TravelAssistant' };
-  } else {
-    return true; // 正常放行
+  // --- 定义白名单 (不需要登录也能访问的路由名称) ---
+  const whiteList = ['Login', 'Register']; 
+
+  // 情况 A: 访问的是白名单页面
+  if (whiteList.includes(to.name as string)) {
+    // 如果已经登录了，还想去登录或注册页，建议直接重定向到首页 (Dashboard/Home)
+    if (isAuthenticated) {
+      return { name: 'TravelAssisant' }; 
+    }
+    return true; // 未登录访问白名单，直接放行
   }
+
+  // 情况 B: 访问的是需要权限的页面，且未登录
+  if (!isAuthenticated) {
+    return { name: 'Login' };
+  }
+
+  // 情况 C: 已登录且访问的是权限页面
+  return true;
 });
 
 /**

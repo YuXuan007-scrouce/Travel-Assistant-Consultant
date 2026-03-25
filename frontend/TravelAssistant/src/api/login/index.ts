@@ -1,7 +1,7 @@
 import http from "../../utils/http/index"
 
 import type {
-  loginQueryInterface,UserInfoInterface
+  loginQueryInterface,UserInfoInterface,registerInterface
 } from "./type";
 
 
@@ -28,4 +28,11 @@ export function getSmsCode(phone: string) {
  */
 export function getUserInfo() {
   return http.get<UserInfoInterface>(`/app/me`);
+}
+
+/**
+ * 注册功能
+ */
+export function register(params: registerInterface){
+   return http.post<string>(`/app/register`,params)
 }

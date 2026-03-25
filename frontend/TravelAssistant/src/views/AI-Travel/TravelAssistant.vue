@@ -93,13 +93,19 @@
 <script setup>
 import { ref, nextTick, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { showToast } from "vant";
 import axios from 'axios';
-import chatHttp from '@/utils/http/aiCustomer'
+import chatHttp from '@/utils/http/aiCustomer';
+import { useUserStore } from "../../store/user";
+import { clearMemory } from "@/api/AI-Travel/index"
 
 const router = useRouter();
+const userStore = useUserStore();
 //跳回之前的页面
-const goBack = () => {
-  router.back();
+const goBack = async () => {
+   await userStore.Logout();
+    showToast("退出登录成功");
+  router.replace("/login");
 }
 
 // 所有响应式变量
@@ -110,7 +116,24 @@ const chatContainer = ref(null);
 const textarea = ref(null);
 const darkMode = ref(false);
 
-const memoryId = ref(Date.now().toString());  // 用于会话记忆的 ID
+// 1. 从 localStorage 取出用户信息字符串
+const userInfo = localStorage.getItem('userInfo');
+let currentUserId = 'anonymous'; // 默认值，防错处理
+
+// 2. 安全解析 JSON
+if (userInfo) {
+  try {
+    const userInfos = JSON.parse(userInfo);
+    if (userInfos.id) {
+      currentUserId = userInfos.id.toString();
+    }
+  } catch (error) {
+    console.error("解析用户信息失败:", error);
+  }
+}
+
+// 3. 绑定为该用户的专属会话 ID (例如: "user_3")
+const memoryId = ref(`user_${currentUserId}`);
 
 let controller = null;
 let typingInterval = null;
@@ -159,11 +182,16 @@ const startTypingEffect = (messageIndex) => {
 
 
 //新建对话 按钮
-const startNewConversation = () => {
+const startNewConversation = async () => {
   messages.value = [];
   // 通过时间戳，生成新的 memoryId
-  memoryId.value = Date.now().toString();
-  
+  //memoryId.value = Date.now().toString();
+  console.log("会话记忆id",memoryId.value)
+
+  const  conversationId = memoryId.value
+ 
+  await clearMemory(conversationId);
+  showToast("新建会话！");
   // 添加初始化，欢迎消息
   messages.value.push({
     role: 'assistant',
@@ -220,7 +248,7 @@ const sendMessage = async () => {
   scrollToBottom();
   isLoading.value = true;
 
-  // 湖南有什么好玩的经典？
+  // 湖南有什么好玩的景点？
 
   //  介绍一下岳麓山
 

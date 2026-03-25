@@ -1,8 +1,16 @@
 export interface loginQueryInterface {
   // 手机号码
   phone: string;
+  // 密码
+  password: string;
   // 	短信验证码
   code: string;
+}
+
+export interface registerInterface{
+  nickName: string;
+  phone: string;
+  password: string;
 }
 
 // 用户信息

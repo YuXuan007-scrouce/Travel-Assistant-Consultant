@@ -4,6 +4,8 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.BCrypt;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import yuxuan.travelassisant.entity.DTO.LoginFormDTO;
 import yuxuan.travelassisant.entity.DTO.Result;
 import yuxuan.travelassisant.entity.DTO.UserDTO;
+import yuxuan.travelassisant.entity.Register;
 import yuxuan.travelassisant.entity.User;
 import yuxuan.travelassisant.mapper.UserMapper;
 import yuxuan.travelassisant.service.LoginService;
@@ -31,6 +34,8 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, User> implements L
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private UserMapper userMapper;
 
     @Override
     public Result sendCode(String phone, HttpSession session) {
@@ -46,7 +51,7 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, User> implements L
         stringRedisTemplate.opsForValue().set(LOGIN_CODE_KEY + phone, vercode,LOGIN_CODE_TTL, TimeUnit.MINUTES);
 
         //5、发送验证码
-        log.debug("发送验证码短信成功，验证码：{}",vercode);
+        log.info("发送验证码短信成功，验证码：{}",vercode);
         return Result.ok();
     }
 
@@ -58,17 +63,40 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, User> implements L
         if (RegexUtils.isPhoneInvalid(phone)){
             return Result.fail("手机号格式错误!");
         }
-        //TOOD 2、校验验证码from Redis
-        String code = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + phone);
-        String vercode01 = loginForm.getCode();
-        if (code == null || ! code.equals(vercode01)){
-            //不一致报错
-            return Result.fail("验证码错误");
+        log.info("执行下一步");
+        // 2、登录方式判断
+        if(loginForm.getCode()!=null && !loginForm.getCode().equals("")) {
+            //校验验证码from Redis
+            String code = stringRedisTemplate.opsForValue().get(LOGIN_CODE_KEY + phone);
+            String vercode01 = loginForm.getCode();
+            if (code == null || !code.equals(vercode01)) {
+                //不一致报错
+                return Result.fail("验证码错误");
+            }
+        } else if (loginForm.getPassword() != null) {
+            //  密码登录
+            // 2.1 根据手机号查询用户（需要拿数据库密文进行比对，必须提前查）
+            User user = query().eq("phone", phone).one();
+            log.info("查询到用户{}",user);
+            if (user == null) {
+                return Result.fail("手机号未注册");
+            }
+            if (StrUtil.isBlank(user.getPassword())) {
+                return Result.fail("该账号未设置密码，请使用验证码登录");
+            }
+
+            // 2.2 BCrypt 验证：BCrypt.checkpw(明文, 数据库密文)
+            boolean passwordMatch = BCrypt.checkpw(loginForm.getPassword(), user.getPassword());
+            if (!passwordMatch) {
+                return Result.fail("密码错误");
+            }
+        } else {
+            return Result.fail("请输入验证码或密码");
         }
 
-        //4、一致，根据手机号查询用户   tb_user 查询的具体的表
+        //3、一致，根据手机号查询用户   tb_user 查询的具体的表
         User user = query().eq("phone", phone).one();
-
+        log.info("用户{}",user);
         //5、判断用户存在
         if (user == null){
             //6、不存在，创建新用户
@@ -90,6 +118,26 @@ public class LoginServiceImpl extends ServiceImpl<UserMapper, User> implements L
 
         //8.返回token
         return Result.ok(token);
+    }
+
+    @Override
+    public Result register(Register register) {
+        User phone = query().eq("phone", register.getPhone()).one();
+        if (phone != null) {
+            log.info("存在账号");
+            return Result.fail("已存在用户请勿重复注册！");
+        }
+        User user = new User();
+        user.setNickName(register.getNickName());
+        user.setPhone(register.getPhone());
+        String hashpw = BCrypt.hashpw(register.getPassword(), BCrypt.gensalt());
+        user.setPassword(hashpw);
+        // 写入数据库
+        int insert = userMapper.insert(user);
+        if (insert != 1) {
+            return Result.fail("注册失败");
+        }
+        return Result.ok();
     }
 
     /**

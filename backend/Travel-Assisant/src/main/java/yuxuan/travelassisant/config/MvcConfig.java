@@ -27,7 +27,7 @@ public class MvcConfig implements WebMvcConfigurer {
         //需要登录授权的拦截器
         registry.addInterceptor(loginInterceptor)
                 .excludePathPatterns("/user/code",
-                        "/app/login/getCode","/app/login",
+                        "/app/login/getCode","/app/login","/app/register",
                         "/user/login","/blog/hot").order(1);
         //token刷新的拦截器
         registry.addInterceptor(refreshTokenInterceptor).order(0);  //默认拦截所有请求

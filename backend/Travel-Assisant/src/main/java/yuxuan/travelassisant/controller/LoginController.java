@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import yuxuan.travelassisant.entity.DTO.LoginFormDTO;
 import yuxuan.travelassisant.entity.DTO.Result;
 import yuxuan.travelassisant.entity.DTO.UserDTO;
+import yuxuan.travelassisant.entity.Register;
 import yuxuan.travelassisant.service.LoginService;
 import yuxuan.travelassisant.utils.UserHolder;
 
@@ -33,6 +34,14 @@ public class LoginController {
         UserDTO user = UserHolder.getUser();
         System.out.println(user);
         return Result.ok(user);
+    }
+
+    @PostMapping("/register")
+    public Result register(@RequestBody Register register){
+        if (register == null) {
+            return Result.fail("请填写注册信息");
+        }
+        return loginService.register(register);
     }
 
 }

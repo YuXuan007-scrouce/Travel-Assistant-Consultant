@@ -23,7 +23,16 @@ const otherRoutes: Array<RouteRecordRaw> = [
       title: "旅游顾问",
       noCache: true
     }
-  }
+  },
+  {
+     path: '/register',
+     name: 'Register',
+     component: () => import('@/views/login/Register.vue'),
+      meta: {
+      title: "注册",
+      noCache: true
+    }
+}
 ]
 
 export default otherRoutes;
